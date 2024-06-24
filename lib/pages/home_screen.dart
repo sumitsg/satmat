@@ -1,6 +1,8 @@
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:newapp/models/banking_model.dart';
 import 'package:newapp/models/utility_model.dart';
 import 'package:newapp/pages/login_screen.dart';
@@ -75,6 +77,20 @@ int _bottomNavIndex = 0;
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // for storing the location of the user
+  String? _currentAddress;
+  Position? _currentPosition;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     final myColorScheme = themeData.colorScheme;
@@ -96,9 +112,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () async{
+             var  curPosi = await  _getCurrentPosition();
+
+
+            },
             icon: const Icon(
-              Icons.refresh_rounded,
+              Icons.location_on_outlined,
               color: Colors.white,
               size: 32,
             ),
@@ -750,4 +770,64 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // it will get the current position of user
+  Future<Position?> _getCurrentPosition() async {
+    final hasPermission = await _handleLocationPermission();
+    if (!hasPermission) return null;
+    await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high)
+        .then((Position position) {
+      setState(() => _currentPosition = position);
+      _getAddressFromLatLng(_currentPosition!);
+      // return _currentPosition;
+    }).catchError((e) {
+      debugPrint(e);
+    });
+  }
+
+  // it will hadndle the user location permission
+  Future<bool> _handleLocationPermission() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Location services are disabled. Please enable the services')));
+      return false;
+    }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permissions are denied')));
+        return false;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Location permissions are permanently denied, we cannot request permissions.')));
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _getAddressFromLatLng(Position position) async {
+    await placemarkFromCoordinates(
+        _currentPosition!.latitude, _currentPosition!.longitude)
+        .then((List<Placemark> placemarks) {
+      Placemark place = placemarks[0];
+      setState(() {
+        _currentAddress =
+        "${place.street}, ${place.subLocality},${place.subAdministrativeArea}, ${place.postalCode}";
+      });
+      debugPrint("Sumit --> $_currentPosition --> $_currentAddress");
+    }).catchError((e) {
+      debugPrint(e);
+    });
+  }
 }
+
+
