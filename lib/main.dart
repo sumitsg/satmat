@@ -12,7 +12,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(
-      create: (_) => AuthService(),
+      create: (_) => AuthProvider(),
     )
   ], child: const MyApp()));
 }
@@ -22,15 +22,40 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthService>(
+    return Consumer<AuthProvider>(
       builder: (context, authService, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: themeData,
-          home: authService.userModel == null
-              ? const LoginScreen()
-              : const HomeScreen(),
+          home: const AuthWrapper(),
         );
+      },
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    return FutureBuilder(
+      future: authProvider.checkLoginStatus(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else {
+          if (authProvider.user != null) {
+            return const HomeScreen();
+          } else {
+            return LoginScreen();
+          }
+        }
       },
     );
   }

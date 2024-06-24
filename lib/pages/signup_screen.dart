@@ -1,203 +1,131 @@
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:newapp/pages/home_screen.dart';
+import 'package:newapp/services/auth_service.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:newapp/services/auth_service.dart';
-import 'package:newapp/services/location_service.dart';
-import 'package:newapp/theme/theme_data.dart';
-import 'package:newapp/widgets/const_sizedbox.dart';
-import 'package:newapp/widgets/custom_button.dart';
-import 'package:newapp/widgets/custom_text_field.dart';
-import 'package:provider/provider.dart';
-
-import 'home_screen.dart';
-
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
-
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  _SignupScreenState createState() => _SignupScreenState();
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _mobileNumberController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
-  File? _profileImage;
-  final ImagePicker _picker = ImagePicker();
-  final LocationService _locationService = LocationService();
-  bool _useCurrentLocation = false;
-  List<String> _suggestions = ['Current Location', 'Enter Manually'];
+  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _mobileController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _imagePicker = ImagePicker();
+  File? _image;
+  bool _isLoading = false;
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    setState(() {
-      if (pickedFile != null) {
-        _profileImage = File(pickedFile.path);
-      } else {
-        print('No image selected.');
-      }
-    });
-  }
+    final pickedFile =
+        await _imagePicker.pickImage(source: ImageSource.gallery);
 
-  Future<String?> _uploadProfileImage(String userId) async {
-    if (_profileImage == null) return null;
-    Reference storageReference =
-        FirebaseStorage.instance.ref().child('user_profiles/$userId.jpg');
-    UploadTask uploadTask = storageReference.putFile(_profileImage!);
-    await uploadTask.whenComplete(() => null);
-    return await storageReference.getDownloadURL();
-  }
-
-  Future<void> _getCurrentLocation() async {
-    try {
-      Position position = await _locationService.getCurrentLocation();
+    if (pickedFile != null) {
       setState(() {
-        _addressController.text = '${position.latitude}, ${position.longitude}';
+        _image = File(pickedFile.path);
       });
-    } catch (e) {
-      print(e);
     }
   }
 
-  void _signup() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        String? imageUrl = _profileImage != null
-            ? await _uploadProfileImage('unique_user_id')
-            : null;
-        if (_profileImage != null) {
-          await Provider.of<AuthService>(context, listen: false).signUp(
-            email: _emailController.text,
-            password: _passwordController.text,
-            username: _usernameController.text,
-            mobileNumber: _mobileNumberController.text,
-            address: _addressController.text,
-            profileImageUrl: imageUrl!,
-          );
-          imageUrl = await _uploadProfileImage('unique_user_id');
-        }
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(),
-          ),
-        );
-      } catch (e) {
-        print(e);
-      }
-    }
+  Future<String> _uploadImage(File image) async {
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('user_images')
+        .child(DateTime.now().toString() + '.jpg');
+    await ref.putFile(image);
+    return await ref.getDownloadURL();
   }
 
   @override
   Widget build(BuildContext context) {
-    ColorScheme myColorScheme = themeData.colorScheme;
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: myColorScheme.surface,
       appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          "Satmat Signup",
-          style: themeData.textTheme.titleLarge,
-        ),
+        title: Text('Sign Up'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            CustomTextField(
-              obscureText: false,
-              controller: _emailController,
-              labelText: "Email",
-            ),
-            const MidSizedBoxHeight(),
-            CustomTextField(
-              obscureText: false,
-              controller: _usernameController,
-              labelText: "User Name",
-              textInputType: TextInputType.emailAddress,
-            ),
-            const MidSizedBoxHeight(),
-            CustomTextField(
-              obscureText: false,
-              controller: _mobileNumberController,
-              labelText: "Mobile Number",
-              textInputType: TextInputType.phone,
-            ),
-            const MidSizedBoxHeight(),
-            TypeAheadField<String>(
-                controller: _addressController,
-                suggestionsCallback: (String search) async {
-                  return _suggestions
-                      .where((suggestion) => suggestion
-                          .toLowerCase()
-                          .contains(search.toLowerCase()))
-                      .toList();
-                },
-                itemBuilder: (BuildContext context, String suggestion) {
-                  return ListTile(
-                    title: Text(suggestion),
-                  );
-                },
-                onSelected: (String suggestion) {
-                  if (suggestion == 'Current Location') {
-                    _getCurrentLocation();
-                  } else {
-                    _addressController.text = suggestion;
-                  }
-                }),
-            const MidSizedBoxHeight(),
-            CustomTextField(
-              obscureText: true,
-              controller: _passwordController,
-              labelText: "Password",
-            ),
-            const LargeSizedBoxHeight(),
-            ElevatedButton(
-              onPressed: _pickImage,
-              child: Text('Pick Profile Image'),
-            ),
-            const LargeSizedBoxHeight(),
-            CustomButton(
-              onPressed: _signup,
-              myColorScheme: myColorScheme,
-              buttonText: const Text("Signup"),
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Already have an account?",
-                ),
-                TextButton(
-                  style: const ButtonStyle(
-                    foregroundColor: WidgetStatePropertyAll(Colors.green),
-                    padding: WidgetStatePropertyAll(
-                      EdgeInsets.all(0),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundImage:
+                            _image != null ? FileImage(_image!) : null,
+                        child: _image == null
+                            ? Icon(Icons.add_a_photo, size: 40)
+                            : null,
+                      ),
                     ),
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    "Login",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
+                    SizedBox(height: 20),
+                    TextField(
+                      controller: _emailController,
+                      decoration: InputDecoration(labelText: 'Email'),
                     ),
-                  ),
+                    TextField(
+                      controller: _usernameController,
+                      decoration: InputDecoration(labelText: 'Username'),
+                    ),
+                    TextField(
+                      controller: _mobileController,
+                      decoration: InputDecoration(labelText: 'Mobile'),
+                    ),
+                    TextField(
+                      controller: _addressController,
+                      decoration: InputDecoration(labelText: 'Address'),
+                    ),
+                    TextField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(labelText: 'Password'),
+                      obscureText: true,
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () async {
+                        setState(() {
+                          _isLoading = true;
+                        });
+
+                        try {
+                          String imageUrl = '';
+                          if (_image != null) {
+                            imageUrl = await _uploadImage(_image!);
+                          }
+                          await authProvider.signup(
+                            _emailController.text,
+                            _usernameController.text,
+                            _mobileController.text,
+                            _addressController.text,
+                            _passwordController.text,
+                            imageUrl,
+                          );
+                          Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (_) => HomeScreen()));
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Signup Failed')));
+                        } finally {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        }
+                      },
+                      child: Text('Sign Up'),
+                    ),
+                  ],
                 ),
-              ],
-            )
-          ],
-        ),
-      ),
+              ),
+            ),
     );
   }
 }

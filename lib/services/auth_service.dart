@@ -1,75 +1,84 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:newapp/models/user_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
-class AuthService with ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  User? _firebaseUser;
-  UserModel? _userModel;
-  UserModel? get userModel => _userModel;
+class AuthProvider with ChangeNotifier {
+  FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseStorage _storage = FirebaseStorage.instance;
 
-  AuthService() {
-    _auth.authStateChanges().listen(_onAuthStateChanged);
-  }
+  User? _user;
+  User? get user => _user;
 
-  Future<void> _onAuthStateChanged(User? firebaseUser) async {
-    _firebaseUser = firebaseUser;
-    await _loadUserModel();
-    notifyListeners();
-  }
-
-  Future<void> _loadUserModel() async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_firebaseUser?.uid)
-        .get();
-    if (userDoc.exists) {
-      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-      _userModel = UserModel.fromDocumentSnapshot(userData, _firebaseUser!.uid);
+  AuthProvider() {
+    _user = _auth.currentUser;
+    if (_user != null) {
+      _loadUserData();
     }
   }
 
-  Future<void> signUp({
-    required String email,
-    required String password,
-    required String username,
-    required String mobileNumber,
-    required String address,
-    required String profileImageUrl,
-  }) async {
-    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    _firebaseUser = userCredential.user;
-    _userModel = UserModel(
-      uid: _firebaseUser!.uid,
-      username: username,
-      email: email,
-      mobileNumber: mobileNumber,
-      address: address,
-      profileImageUrl: profileImageUrl,
-    );
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(_firebaseUser!.uid)
-        .set(_userModel!.toMap());
-
+  Future<void> checkLoginStatus() async {
+    _user = _auth.currentUser;
+    if (_user != null) {
+      await _loadUserData();
+    }
     notifyListeners();
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
-    await _auth.signInWithEmailAndPassword(email: email, password: password);
+  Future<void> login(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      _user = userCredential.user;
+      await _loadUserData();
+      notifyListeners();
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  Future<void> signup(String email, String username, String mobile,
+      String address, String password, String imageUrl) async {
+    try {
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+      _user = userCredential.user;
+
+      await _firestore.collection('users').doc(_user!.uid).set({
+        'username': username,
+        'mobile': mobile,
+        'address': address,
+        'email': email,
+        'imageUrl': imageUrl,
+      });
+
+      await _loadUserData();
+      notifyListeners();
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  Future<void> _loadUserData() async {
+    if (_user != null) {
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(_user!.uid).get();
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('username', userDoc['username']);
+      prefs.setString('mobile', userDoc['mobile']);
+      prefs.setString('address', userDoc['address']);
+      prefs.setString('email', userDoc['email']);
+      prefs.setString('imageUrl', userDoc['imageUrl']);
+    }
   }
 
   Future<void> logout() async {
     await _auth.signOut();
-    _firebaseUser = null;
-    _userModel = null;
+    _user = null;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
     notifyListeners();
   }
 }
