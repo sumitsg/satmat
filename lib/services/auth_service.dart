@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 class AuthProvider with ChangeNotifier {
   FirebaseAuth _auth = FirebaseAuth.instance;
   FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  FirebaseStorage _storage = FirebaseStorage.instance;
 
   User? _user;
   User? get user => _user;

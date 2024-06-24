@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -20,24 +22,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login'),
+        title: const Text('Login'),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
                   TextField(
                     controller: _emailController,
-                    decoration: InputDecoration(labelText: 'Email'),
+                    decoration: const InputDecoration(labelText: 'Email'),
                   ),
                   TextField(
                     controller: _passwordController,
-                    decoration: InputDecoration(labelText: 'Password'),
+                    decoration: const InputDecoration(labelText: 'Password'),
                     obscureText: true,
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () async {
                       setState(() {
@@ -49,25 +51,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           _emailController.text,
                           _passwordController.text,
                         );
-                        Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => HomeScreen()));
+                        Navigator.of(context).pushReplacement(MaterialPageRoute(
+                            builder: (_) => const HomeScreen()));
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Login Failed')));
+                            const SnackBar(content: Text('Login Failed')));
                       } finally {
                         setState(() {
                           _isLoading = false;
                         });
                       }
                     },
-                    child: Text('Login'),
+                    child: const Text('Login'),
                   ),
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => SignupScreen()));
                     },
-                    child: Text('Don\'t have an account? Sign up'),
+                    child: const Text('Don\'t have an account? Sign up'),
                   ),
                 ],
               ),

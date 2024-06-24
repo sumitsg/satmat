@@ -3,10 +3,13 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:newapp/models/banking_model.dart';
 import 'package:newapp/models/utility_model.dart';
+import 'package:newapp/pages/login_screen.dart';
+import 'package:newapp/services/auth_service.dart';
 import 'package:newapp/theme/theme_data.dart';
 import 'package:newapp/widgets/banking_container.dart';
 import 'package:newapp/widgets/const_sizedbox.dart';
 import 'package:newapp/widgets/utility_container.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -122,8 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: myColorScheme.primary,
         child: ListView(
           padding: EdgeInsets.zero,
-          children: const [
-            DrawerHeader(
+          children: [
+            const DrawerHeader(
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
@@ -164,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -181,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -198,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -215,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -232,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -249,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -266,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -283,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -300,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Row(
                 children: [
                   Icon(
@@ -318,7 +321,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             ListTile(
-              title: Row(
+              onTap: () async {
+                await Provider.of<AuthProvider>(context, listen: false)
+                    .logout();
+                Navigator.of(context).pushReplacement(MaterialPageRoute(
+                    builder: (context) => const LoginScreen()));
+              },
+              title: const Row(
                 children: [
                   Icon(
                     Icons.logout_outlined,

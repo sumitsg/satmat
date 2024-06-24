@@ -37,8 +37,13 @@ class _SignupScreenState extends State<SignupScreen> {
         .ref()
         .child('user_images')
         .child(DateTime.now().toString() + '.jpg');
-    await ref.putFile(image);
-    return await ref.getDownloadURL();
+    try {
+      await ref.putFile(image);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      print("Image upload failed: $e");
+      throw e;
+    }
   }
 
   @override
@@ -113,7 +118,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               MaterialPageRoute(builder: (_) => HomeScreen()));
                         } catch (e) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Signup Failed')));
+                              SnackBar(content: Text('Signup Failed: $e')));
                         } finally {
                           setState(() {
                             _isLoading = false;
